@@ -1,0 +1,280 @@
+<Window x:Class="SqlAnalyzer.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="SQL Analyzer Client"
+        Width="1400"
+        Height="860"
+        MinWidth="1100"
+        MinHeight="700">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                BorderBrush="#C8CCD4"
+                BorderThickness="0,0,0,1"
+                Background="#F7F8FA"
+                Padding="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Margin="0,0,8,0"
+                           VerticalAlignment="Center"
+                           Text="Dialect" />
+                <ComboBox Grid.Column="1"
+                          Width="160"
+                          Margin="0,0,12,0"
+                          ItemsSource="{Binding Dialects}"
+                          SelectedItem="{Binding SelectedDialect}" />
+
+                <Button Grid.Column="2"
+                        Width="90"
+                        Margin="0,0,8,0"
+                        Content="Format"
+                        Command="{Binding FormatCommand}" />
+                <Button Grid.Column="3"
+                        Width="90"
+                        Margin="0,0,8,0"
+                        Content="Analyze"
+                        Command="{Binding AnalyzeCommand}" />
+                <Button Grid.Column="4"
+                        Width="90"
+                        Margin="0,0,8,0"
+                        Content="Cancel"
+                        Command="{Binding CancelCommand}" />
+                <Button Grid.Column="5"
+                        Width="90"
+                        Margin="0,0,8,0"
+                        Content="Settings"
+                        Command="{Binding SettingsCommand}" />
+
+                <StackPanel Grid.Column="7"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <TextBlock Margin="0,0,16,0"
+                               Text="{Binding StatusText}" />
+                    <TextBlock Margin="0,0,16,0"
+                               Text="{Binding ExecutionTimeText}" />
+                    <TextBlock Text="{Binding BoundaryInfoText}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1"
+              Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0"
+                  Margin="0,0,8,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Margin="0,0,0,8"
+                           FontWeight="SemiBold"
+                           Text="SQL Editor" />
+
+                <TextBox Grid.Row="1"
+                         AcceptsReturn="True"
+                         AcceptsTab="True"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Consolas"
+                         FontSize="14"
+                         Text="{Binding SqlText, UpdateSourceTrigger=PropertyChanged}" />
+
+                <TextBlock Grid.Row="2"
+                           Margin="0,8,0,0"
+                           Foreground="#4A5568"
+                           Text="Only the first SQL statement (terminated by ';' or GO) will be analyzed." />
+            </Grid>
+
+            <TabControl Grid.Column="1"
+                        Margin="8,0,0,0">
+                <TabItem Header="Summary">
+                    <StackPanel Margin="12">
+                        <TextBlock Text="{Binding StatementTypeText, StringFormat=Statement Type: {0}}" />
+                        <TextBlock Margin="0,6,0,0"
+                                   Text="{Binding TableCount, StringFormat=Tables: {0}}" />
+                        <TextBlock Margin="0,6,0,0"
+                                   Text="{Binding RelationCount, StringFormat=Relations: {0}}" />
+                        <TextBlock Margin="0,6,0,0"
+                                   Text="{Binding SelectItemCount, StringFormat=Select Items: {0}}" />
+                        <TextBlock Margin="0,6,0,0"
+                                   Text="{Binding DiagnosticCount, StringFormat=Diagnostics: {0}}" />
+                        <TextBlock Margin="0,6,0,0"
+                                   Text="{Binding BoundaryKindText, StringFormat=Boundary Type: {0}}" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Tables">
+                    <DataGrid AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              ItemsSource="{Binding Tables}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" />
+                            <DataGridTextColumn Header="Schema" Binding="{Binding Schema}" />
+                            <DataGridTextColumn Header="Object" Binding="{Binding Object}" />
+                            <DataGridTextColumn Header="Alias" Binding="{Binding Alias}" />
+                            <DataGridTextColumn Header="Logical Name" Binding="{Binding LogicalName}" />
+                            <DataGridTextColumn Header="Role" Binding="{Binding Role}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </TabItem>
+
+                <TabItem Header="Relations">
+                    <DataGrid AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              ItemsSource="{Binding Relations}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="From Table" Binding="{Binding FromTable}" />
+                            <DataGridTextColumn Header="JoinType" Binding="{Binding JoinType}" />
+                            <DataGridTextColumn Header="To Table" Binding="{Binding ToTable}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </TabItem>
+
+                <TabItem Header="Select Items">
+                    <Grid>
+                        <TextBlock Margin="12"
+                                   VerticalAlignment="Top"
+                                   Foreground="#4A5568"
+                                   Text="This SQL statement is not a SELECT."
+                                   Visibility="{Binding IsNotSelectStatement, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                        <Grid Visibility="{Binding IsSelectStatement, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <DataGrid Grid.Row="0"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      IsReadOnly="True"
+                                      ItemsSource="{Binding SelectItems}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Output Name" Binding="{Binding OutputName}" />
+                                    <DataGridTextColumn Header="Expression" Binding="{Binding Expression}" />
+                                    <DataGridTextColumn Header="Table" Binding="{Binding Table}" />
+                                    <DataGridTextColumn Header="Column Name" Binding="{Binding ColumnName}" />
+                                    <DataGridTextColumn Header="Logical Name" Binding="{Binding LogicalName}" />
+                                    <DataGridTextColumn Header="Resolution Status" Binding="{Binding ResolutionStatus}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <StackPanel Grid.Row="1"
+                                        Margin="8"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Right">
+                                <Button Width="130"
+                                        Margin="0,0,8,0"
+                                        Content="Export as CSV"
+                                        IsEnabled="False" />
+                                <Button Width="150"
+                                        Content="Export as Markdown"
+                                        IsEnabled="False" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Diagram">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0"
+                                    Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="Mode"
+                                       Margin="0,0,8,0" />
+                            <ComboBox Width="190"
+                                      ItemsSource="{Binding DiagramModes}"
+                                      SelectedItem="{Binding SelectedDiagramMode}" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1"
+                                Margin="0,10,0,10"
+                                Padding="12"
+                                BorderBrush="#D3D7DE"
+                                BorderThickness="1"
+                                Visibility="{Binding IsDiagramImageMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <TextBlock TextWrapping="Wrap"
+                                           Text="{Binding DiagramImageText}" />
+                            </ScrollViewer>
+                        </Border>
+
+                        <TextBox Grid.Row="1"
+                                 Margin="0,10,0,10"
+                                 FontFamily="Consolas"
+                                 IsReadOnly="True"
+                                 Text="{Binding MermaidText}"
+                                 Visibility="{Binding IsMermaidMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                        <StackPanel Grid.Row="2"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button Width="110"
+                                    Margin="0,0,8,0"
+                                    Content="Save PNG"
+                                    IsEnabled="False" />
+                            <Button Width="130"
+                                    Margin="0,0,8,0"
+                                    Content="Save Markdown"
+                                    IsEnabled="False" />
+                            <Button Width="150"
+                                    Content="Copy to Clipboard"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Diagnostics">
+                    <DataGrid AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              ItemsSource="{Binding Diagnostics}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Severity" Binding="{Binding Severity}" />
+                            <DataGridTextColumn Header="Code" Binding="{Binding Code}" />
+                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" />
+                            <DataGridTextColumn Header="Location" Binding="{Binding Location}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </Grid>
+</Window>

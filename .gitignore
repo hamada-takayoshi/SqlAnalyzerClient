@@ -1,0 +1,30 @@
+# .NET build outputs
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Test results
+TestResults/
+
+# Publish / artifacts
+publish/
+artifacts/
+
+# Local secrets
+.env
+secrets.json
+*.pfx
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
