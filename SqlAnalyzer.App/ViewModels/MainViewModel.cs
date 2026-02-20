@@ -3,12 +3,14 @@ using System.Diagnostics;
 using System.Windows.Input;
 using SqlAnalyzer.Domain.Model;
 using SqlAnalyzer.SqlServer.Analysis;
+using SqlAnalyzer.SqlServer.Boundary;
 
 namespace SqlAnalyzer.App.ViewModels;
 
 public sealed class MainViewModel : ObservableObject
 {
     private readonly ISqlAnalyzer _analyzer;
+    private readonly StatementBoundaryExtractor _boundaryExtractor;
     private readonly AsyncRelayCommand _analyzeCommand;
     private readonly RelayCommand _cancelCommand;
     private readonly RelayCommand _formatCommand;
@@ -36,6 +38,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     public MainViewModel(ISqlAnalyzer analyzer)
     {
         _analyzer = analyzer;
+        _boundaryExtractor = new StatementBoundaryExtractor();
 
         Dialects = new[] { SqlDialect.SqlServer };
         DiagramModes = new[] { "Diagram Image", "Mermaid Markdown" };
@@ -198,7 +201,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 
         try
         {
-            SqlAnalysisResult result = await _analyzer.AnalyzeAsync(SelectedDialect, SqlText, cancellationToken);
+            StatementBoundaryExtractionResult boundaryResult = _boundaryExtractor.Extract(SqlText);
+            SqlAnalysisResult result = await _analyzer.AnalyzeAsync(SelectedDialect, boundaryResult.NormalizedText, cancellationToken);
+            result = MergeBoundaryAndDiagnostics(result, boundaryResult);
             stopwatch.Stop();
 
             ApplyResult(result);
@@ -218,6 +223,34 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             _analysisCancellationTokenSource?.Dispose();
             _analysisCancellationTokenSource = null;
         }
+    }
+
+    private static SqlAnalysisResult MergeBoundaryAndDiagnostics(
+        SqlAnalysisResult result,
+        StatementBoundaryExtractionResult boundaryResult)
+    {
+        List<Diagnostic> diagnostics = result.Diagnostics.ToList();
+
+        if (boundaryResult.HasTrailingStatements &&
+            diagnostics.All(d => !string.Equals(d.Code, "MULTI_STATEMENT_TRUNCATED", StringComparison.Ordinal)))
+        {
+            diagnostics.Add(new Diagnostic
+            {
+                Severity = DiagnosticSeverity.Warning,
+                Code = "MULTI_STATEMENT_TRUNCATED",
+                Message = "Only the first SQL statement was analyzed. Trailing statements were ignored."
+            });
+        }
+
+        return result with
+        {
+            Document = new SqlDocumentInfo
+            {
+                Boundary = boundaryResult.Boundary,
+                HasTrailingStatements = boundaryResult.HasTrailingStatements
+            },
+            Diagnostics = diagnostics
+        };
     }
 
     private void CancelAnalysis()

@@ -12,7 +12,7 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
         {
             Id = new TableRefId("t1"),
             Alias = "o",
-            LogicalName = "受注",
+            LogicalName = "Orders",
             Source = new TableSourceRef
             {
                 Kind = TableSourceKind.PhysicalTable,
@@ -22,21 +22,7 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
                     Schema = "dbo",
                     Object = "Orders",
                     Raw = "[dbo].[Orders]"
-                },
-                Span = new SourceSpan
-                {
-                    StartIndex = 14,
-                    Length = 12,
-                    StartLine = 2,
-                    StartColumn = 6
                 }
-            },
-            Span = new SourceSpan
-            {
-                StartIndex = 14,
-                Length = 14,
-                StartLine = 2,
-                StartColumn = 6
             }
         };
 
@@ -44,7 +30,7 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
         {
             Id = new TableRefId("t2"),
             Alias = "c",
-            LogicalName = "顧客",
+            LogicalName = "Customers",
             Source = new TableSourceRef
             {
                 Kind = TableSourceKind.PhysicalTable,
@@ -54,21 +40,7 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
                     Schema = "dbo",
                     Object = "Customers",
                     Raw = "[dbo].[Customers]"
-                },
-                Span = new SourceSpan
-                {
-                    StartIndex = 42,
-                    Length = 15,
-                    StartLine = 3,
-                    StartColumn = 11
                 }
-            },
-            Span = new SourceSpan
-            {
-                StartIndex = 42,
-                Length = 17,
-                StartLine = 3,
-                StartColumn = 11
             }
         };
 
@@ -82,14 +54,7 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
                     From = new TableRefId("t1"),
                     To = new TableRefId("t2"),
                     JoinType = JoinType.LeftOuter,
-                    ConditionText = "o.CustomerId = c.CustomerId",
-                    Span = new SourceSpan
-                    {
-                        StartIndex = 34,
-                        Length = 42,
-                        StartLine = 3,
-                        StartColumn = 1
-                    }
+                    ConditionText = "o.CustomerId = c.CustomerId"
                 }
             },
             SelectItems = new[]
@@ -102,23 +67,9 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
                     {
                         ColumnName = "OrderId",
                         TableAliasOrName = "o",
-                        ResolvedTable = new TableRefId("t1"),
-                        Span = new SourceSpan
-                        {
-                            StartIndex = 7,
-                            Length = 9,
-                            StartLine = 1,
-                            StartColumn = 8
-                        }
+                        ResolvedTable = new TableRefId("t1")
                     },
-                    LogicalName = "受注ID",
-                    Span = new SourceSpan
-                    {
-                        StartIndex = 7,
-                        Length = 9,
-                        StartLine = 1,
-                        StartColumn = 8
-                    }
+                    LogicalName = "Order Identifier"
                 },
                 new SelectItem
                 {
@@ -128,29 +79,15 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
                     {
                         ColumnName = "CustomerName",
                         TableAliasOrName = "c",
-                        ResolvedTable = new TableRefId("t2"),
-                        Span = new SourceSpan
-                        {
-                            StartIndex = 18,
-                            Length = 14,
-                            StartLine = 1,
-                            StartColumn = 19
-                        }
+                        ResolvedTable = new TableRefId("t2")
                     },
-                    LogicalName = "顧客名",
-                    Span = new SourceSpan
-                    {
-                        StartIndex = 18,
-                        Length = 14,
-                        StartLine = 1,
-                        StartColumn = 19
-                    }
+                    LogicalName = "Customer Name"
                 }
             },
             Span = new SourceSpan
             {
                 StartIndex = 0,
-                Length = Math.Max(sqlText?.Length ?? 0, 80),
+                Length = Math.Max(sqlText.Length, 1),
                 StartLine = 1,
                 StartColumn = 1
             }
@@ -164,8 +101,8 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
                 Boundary = new StatementBoundary
                 {
                     StartIndex = 0,
-                    EndIndexExclusive = Math.Max(sqlText?.Length ?? 0, 80),
-                    Kind = BoundaryKind.Semicolon
+                    EndIndexExclusive = sqlText.Length,
+                    Kind = BoundaryKind.EndOfText
                 },
                 HasTrailingStatements = false
             },
@@ -176,14 +113,7 @@ public sealed class DummyAnalyzer : ISqlAnalyzer
                 {
                     Severity = DiagnosticSeverity.Warning,
                     Code = "PARTIAL_PARSE",
-                    Message = "Dummy analyzer result for Phase 2.",
-                    Span = new SourceSpan
-                    {
-                        StartIndex = 0,
-                        Length = 6,
-                        StartLine = 1,
-                        StartColumn = 1
-                    }
+                    Message = "Dummy analyzer result for current phase."
                 }
             }
         };
