@@ -1,7 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using SqlAnalyzer.Domain.Model;
+using SqlAnalyzer.App.Services;
 using SqlAnalyzer.SqlServer.Analysis;
 using SqlAnalyzer.SqlServer.Boundary;
 
@@ -11,10 +14,15 @@ public sealed class MainViewModel : ObservableObject
 {
     private readonly ISqlAnalyzer _analyzer;
     private readonly StatementBoundaryExtractor _boundaryExtractor;
+    private readonly DiagramService _diagramService;
+    private readonly ExportService _exportService;
     private readonly AsyncRelayCommand _analyzeCommand;
     private readonly RelayCommand _cancelCommand;
     private readonly RelayCommand _formatCommand;
     private readonly RelayCommand _settingsCommand;
+    private readonly RelayCommand _copyMermaidCommand;
+    private readonly RelayCommand _saveMermaidCommand;
+    private readonly RelayCommand _savePngCommand;
 
     private string _sqlText = """
 SELECT
@@ -30,8 +38,11 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     private string _boundaryInfoText = "-";
     private bool _isAnalyzing;
     private string _selectedDiagramMode = "Diagram Image";
-    private string _diagramImageText = "Diagram generation is not implemented in Phase 2.";
-    private string _mermaidText = "%% Mermaid generation is not implemented in Phase 2.";
+    private string _diagramImageText = "Analyze SQL to generate diagram preview.";
+    private string _diagramErrorMessage = string.Empty;
+    private string _mermaidText = "flowchart LR";
+    private BitmapSource? _diagramImageSource;
+    private byte[]? _diagramPngBytes;
     private SqlAnalysisResult? _analysisResult;
     private CancellationTokenSource? _analysisCancellationTokenSource;
 
@@ -39,6 +50,8 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     {
         _analyzer = analyzer;
         _boundaryExtractor = new StatementBoundaryExtractor();
+        _diagramService = new DiagramService();
+        _exportService = new ExportService();
 
         Dialects = new[] { SqlDialect.SqlServer };
         DiagramModes = new[] { "Diagram Image", "Mermaid Markdown" };
@@ -52,6 +65,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         _cancelCommand = new RelayCommand(CancelAnalysis, () => IsAnalyzing);
         _formatCommand = new RelayCommand(FormatSql, () => !IsAnalyzing);
         _settingsCommand = new RelayCommand(() => OpenSettingsAction?.Invoke());
+        _copyMermaidCommand = new RelayCommand(CopyMermaid, () => !string.IsNullOrWhiteSpace(MermaidText));
+        _saveMermaidCommand = new RelayCommand(SaveMermaid, () => !string.IsNullOrWhiteSpace(MermaidText));
+        _savePngCommand = new RelayCommand(SavePng, () => _diagramPngBytes is { Length: > 0 });
     }
 
     public Action? OpenSettingsAction { get; set; }
@@ -75,6 +91,12 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     public ICommand CancelCommand => _cancelCommand;
 
     public ICommand SettingsCommand => _settingsCommand;
+
+    public ICommand CopyMermaidCommand => _copyMermaidCommand;
+
+    public ICommand SaveMermaidCommand => _saveMermaidCommand;
+
+    public ICommand SavePngCommand => _savePngCommand;
 
     public string SqlText
     {
@@ -143,10 +165,29 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         set => SetProperty(ref _diagramImageText, value);
     }
 
+    public string DiagramErrorMessage
+    {
+        get => _diagramErrorMessage;
+        set => SetProperty(ref _diagramErrorMessage, value);
+    }
+
     public string MermaidText
     {
         get => _mermaidText;
-        set => SetProperty(ref _mermaidText, value);
+        set
+        {
+            if (SetProperty(ref _mermaidText, value))
+            {
+                _copyMermaidCommand.NotifyCanExecuteChanged();
+                _saveMermaidCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public BitmapSource? DiagramImageSource
+    {
+        get => _diagramImageSource;
+        set => SetProperty(ref _diagramImageSource, value);
     }
 
     public SqlAnalysisResult? AnalysisResult
@@ -335,8 +376,40 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             });
         }
 
-        MermaidText = "%% Dummy output for Phase 2\ngraph TD\n  t1[Orders] -->|LeftOuter| t2[Customers]";
-        DiagramImageText = "Diagram image generation is not implemented in Phase 2.";
+        DiagramArtifacts diagram = _diagramService.Generate(result.Statement);
+        MermaidText = diagram.MermaidText;
+        _diagramPngBytes = diagram.PngBytes;
+        DiagramImageSource = _diagramService.CreateBitmapSource(diagram.PngBytes);
+        DiagramErrorMessage = diagram.ErrorMessage ?? string.Empty;
+        DiagramImageText = DiagramImageSource is null
+            ? (string.IsNullOrWhiteSpace(DiagramErrorMessage) ? "PNG preview is not available." : DiagramErrorMessage)
+            : "PNG preview generated successfully.";
+        _savePngCommand.NotifyCanExecuteChanged();
+    }
+
+    private void CopyMermaid()
+    {
+        if (!string.IsNullOrWhiteSpace(MermaidText))
+        {
+            Clipboard.SetText(MermaidText);
+            StatusText = "Mermaid text copied.";
+        }
+    }
+
+    private void SaveMermaid()
+    {
+        if (_exportService.SaveMermaidMarkdown(MermaidText))
+        {
+            StatusText = "Mermaid markdown saved.";
+        }
+    }
+
+    private void SavePng()
+    {
+        if (_diagramPngBytes is { Length: > 0 } && _exportService.SavePng(_diagramPngBytes))
+        {
+            StatusText = "PNG saved.";
+        }
     }
 
     public sealed record TableRow
