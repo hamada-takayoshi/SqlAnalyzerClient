@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -234,6 +236,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     {
         _analysisCancellationTokenSource = new CancellationTokenSource();
         CancellationToken cancellationToken = _analysisCancellationTokenSource.Token;
+        StatementBoundaryExtractionResult boundaryResult = _boundaryExtractor.Extract(SqlText);
 
         Stopwatch stopwatch = Stopwatch.StartNew();
         IsAnalyzing = true;
@@ -242,7 +245,6 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 
         try
         {
-            StatementBoundaryExtractionResult boundaryResult = _boundaryExtractor.Extract(SqlText);
             SqlAnalysisResult result = await _analyzer.AnalyzeAsync(SelectedDialect, boundaryResult.NormalizedText, cancellationToken);
             result = MergeBoundaryAndDiagnostics(result, boundaryResult);
             stopwatch.Stop();
@@ -257,6 +259,15 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             stopwatch.Stop();
             StatusText = "Canceled";
             ExecutionTimeText = $"{stopwatch.ElapsedMilliseconds} ms";
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            SqlAnalysisResult fallback = CreateFallbackResult(boundaryResult, ex);
+            ApplyResult(fallback);
+            StatusText = "Ready (with diagnostics)";
+            ExecutionTimeText = $"{stopwatch.ElapsedMilliseconds} ms";
+            BoundaryInfoText = $"Analyzed until {fallback.Document.Boundary.Kind}";
         }
         finally
         {
@@ -292,6 +303,31 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             },
             Diagnostics = diagnostics
         };
+    }
+
+    private SqlAnalysisResult CreateFallbackResult(StatementBoundaryExtractionResult boundaryResult, Exception ex)
+    {
+        SqlAnalysisResult fallback = new()
+        {
+            Dialect = SelectedDialect,
+            Document = new SqlDocumentInfo
+            {
+                Boundary = boundaryResult.Boundary,
+                HasTrailingStatements = boundaryResult.HasTrailingStatements
+            },
+            Statement = new UnknownStatement(),
+            Diagnostics = new[]
+            {
+                new Diagnostic
+                {
+                    Severity = DiagnosticSeverity.Error,
+                    Code = "UNSUPPORTED_SYNTAX",
+                    Message = $"Analysis failed unexpectedly: {ex.Message}"
+                }
+            }
+        };
+
+        return MergeBoundaryAndDiagnostics(fallback, boundaryResult);
     }
 
     private void CancelAnalysis()
@@ -389,11 +425,57 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 
     private void CopyMermaid()
     {
-        if (!string.IsNullOrWhiteSpace(MermaidText))
+        if (string.IsNullOrWhiteSpace(MermaidText))
         {
-            Clipboard.SetText(MermaidText);
-            StatusText = "Mermaid text copied.";
+            StatusText = "コピー対象のMermaidテキストがありません。";
+            return;
         }
+
+        const int maxAttempts = 5;
+        const int retryDelayMs = 120;
+
+        COMException? lastComException = null;
+        Exception? lastException = null;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                Clipboard.SetText(MermaidText);
+                StatusText = attempt == 1
+                    ? "Mermaidテキストをコピーしました。"
+                    : $"Mermaidテキストをコピーしました（{attempt - 1}回リトライ後に成功）。";
+                return;
+            }
+            catch (COMException ex)
+            {
+                lastComException = ex;
+                if (attempt < maxAttempts)
+                {
+                    Thread.Sleep(retryDelayMs);
+                    continue;
+                }
+            }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                if (attempt < maxAttempts)
+                {
+                    Thread.Sleep(retryDelayMs);
+                    continue;
+                }
+            }
+        }
+
+        if (lastComException is not null)
+        {
+            StatusText = $"クリップボードにコピーできませんでした（{maxAttempts}回試行）。HResult: 0x{lastComException.HResult:X8}";
+            return;
+        }
+
+        StatusText = lastException is null
+            ? $"クリップボードにコピーできませんでした（{maxAttempts}回試行）。"
+            : $"クリップボードにコピーできませんでした（{maxAttempts}回試行）。{lastException.Message}";
     }
 
     private void SaveMermaid()

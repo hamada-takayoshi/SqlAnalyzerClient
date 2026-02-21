@@ -16,6 +16,7 @@ public partial class MainWindow : Window
         Phase4VerificationHarness.VerifyOrThrow();
         Phase5VerificationHarness.VerifyOrThrow();
         Phase6VerificationHarness.VerifyOrThrow();
+        Phase7VerificationHarness.VerifyOrThrow();
 
         MainViewModel viewModel = new(new SqlServerAnalyzer());
         viewModel.OpenSettingsAction = OpenSettingsWindow;
