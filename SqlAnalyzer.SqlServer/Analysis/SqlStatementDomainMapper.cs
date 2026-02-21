@@ -18,6 +18,8 @@ internal sealed class SqlStatementDomainMapper
     private readonly string _sqlText;
     private readonly List<TableRef> _tables = [];
     private readonly List<TableRelation> _relations = [];
+    private readonly Dictionary<string, TableRefId> _tableAliasToId = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, TableRefId> _tableObjectToId = new(StringComparer.OrdinalIgnoreCase);
     private int _tableIndex;
 
     public SqlStatementDomainMapper(string sqlText)
@@ -57,7 +59,8 @@ internal sealed class SqlStatementDomainMapper
         return new DomainSelectStatement
         {
             Tables = _tables.ToList(),
-            Relations = _relations.ToList()
+            Relations = _relations.ToList(),
+            SelectItems = ExtractSelectItems(statement.QueryExpression).ToList()
         };
     }
 
@@ -201,6 +204,196 @@ internal sealed class SqlStatementDomainMapper
         }
     }
 
+    private IReadOnlyList<SelectItem> ExtractSelectItems(QueryExpression? queryExpression)
+    {
+        if (queryExpression is null)
+        {
+            return Array.Empty<SelectItem>();
+        }
+
+        List<SelectItem> items = [];
+        switch (queryExpression)
+        {
+            case QuerySpecification querySpecification:
+                foreach (SelectElement element in querySpecification.SelectElements)
+                {
+                    SelectItem? item = CreateSelectItem(element);
+                    if (item is not null)
+                    {
+                        items.Add(item);
+                    }
+                }
+
+                break;
+            case BinaryQueryExpression binary:
+                items.AddRange(ExtractSelectItems(binary.FirstQueryExpression));
+                items.AddRange(ExtractSelectItems(binary.SecondQueryExpression));
+                break;
+            case QueryParenthesisExpression parenthesized:
+                items.AddRange(ExtractSelectItems(parenthesized.QueryExpression));
+                break;
+        }
+
+        return items;
+    }
+
+    private SelectItem? CreateSelectItem(SelectElement element)
+    {
+        if (element is SelectScalarExpression scalar && scalar.Expression is not null)
+        {
+            string expressionText = GetFragmentText(scalar.Expression) ?? scalar.Expression.ToString() ?? string.Empty;
+            string? outputName = scalar.ColumnName?.Value;
+            if (string.IsNullOrWhiteSpace(outputName))
+            {
+                outputName = InferOutputName(scalar.Expression);
+            }
+
+            ColumnRef? sourceColumn = CreateSourceColumn(scalar.Expression);
+            string? logicalName = ExtractLogicalNameAfter(scalar.Expression.StartOffset + scalar.Expression.FragmentLength);
+
+            return new SelectItem
+            {
+                OutputName = outputName,
+                ExpressionText = expressionText,
+                SourceColumn = sourceColumn,
+                LogicalName = logicalName
+            };
+        }
+
+        if (element is SelectStarExpression star)
+        {
+            string expressionText = GetFragmentText(star) ?? "*";
+            string? logicalName = ExtractLogicalNameAfter(star.StartOffset + star.FragmentLength);
+            return new SelectItem
+            {
+                OutputName = null,
+                ExpressionText = expressionText,
+                SourceColumn = null,
+                LogicalName = logicalName
+            };
+        }
+
+        return null;
+    }
+
+    private ColumnRef? CreateSourceColumn(ScalarExpression expression)
+    {
+        if (expression is not ColumnReferenceExpression columnReference ||
+            columnReference.MultiPartIdentifier?.Identifiers is null ||
+            columnReference.MultiPartIdentifier.Identifiers.Count == 0)
+        {
+            return null;
+        }
+
+        IList<Identifier> identifiers = columnReference.MultiPartIdentifier.Identifiers;
+        string columnName = identifiers[^1].Value;
+        string? sourceToken = identifiers.Count >= 2 ? identifiers[^2].Value : null;
+        TableRefId? resolvedTableId = ResolveTableRefId(sourceToken);
+        string? sourceTableName = ResolveTableDisplayName(sourceToken, resolvedTableId);
+
+        return new ColumnRef
+        {
+            ColumnName = columnName,
+            TableAliasOrName = sourceTableName,
+            ResolvedTable = resolvedTableId
+        };
+    }
+
+    private TableRefId? ResolveTableRefId(string? sourceToken)
+    {
+        if (string.IsNullOrWhiteSpace(sourceToken))
+        {
+            return null;
+        }
+
+        if (_tableAliasToId.TryGetValue(sourceToken, out TableRefId? aliasId) && aliasId is not null)
+        {
+            return aliasId;
+        }
+
+        if (_tableObjectToId.TryGetValue(sourceToken, out TableRefId? objectId) && objectId is not null)
+        {
+            return objectId;
+        }
+
+        return null;
+    }
+
+    private string? ResolveTableDisplayName(string? sourceToken, TableRefId? resolvedTableId)
+    {
+        if (resolvedTableId is null)
+        {
+            return sourceToken;
+        }
+
+        TableRef? table = _tables.FirstOrDefault(t => t.Id == resolvedTableId);
+        if (table?.Source.Name?.Object is not null)
+        {
+            return table.Source.Name.Object;
+        }
+
+        return sourceToken;
+    }
+
+    private string? InferOutputName(ScalarExpression expression)
+    {
+        if (expression is ColumnReferenceExpression columnReference &&
+            columnReference.MultiPartIdentifier?.Identifiers is { Count: > 0 })
+        {
+            return columnReference.MultiPartIdentifier.Identifiers[^1].Value;
+        }
+
+        if (expression is VariableReference variableReference)
+        {
+            return variableReference.Name;
+        }
+
+        return null;
+    }
+
+    private string? ExtractLogicalNameAfter(int endIndexExclusive)
+    {
+        if (endIndexExclusive < 0 || endIndexExclusive >= _sqlText.Length)
+        {
+            return null;
+        }
+
+        int i = endIndexExclusive;
+        while (i < _sqlText.Length && (_sqlText[i] == ' ' || _sqlText[i] == '\t'))
+        {
+            i++;
+        }
+
+        if (i + 1 >= _sqlText.Length)
+        {
+            return null;
+        }
+
+        if (_sqlText[i] == '/' && _sqlText[i + 1] == '*')
+        {
+            int close = _sqlText.IndexOf("*/", i + 2, StringComparison.Ordinal);
+            if (close > i + 2)
+            {
+                string value = _sqlText.Substring(i + 2, close - (i + 2)).Trim();
+                return string.IsNullOrWhiteSpace(value) ? null : value;
+            }
+        }
+
+        if (_sqlText[i] == '-' && _sqlText[i + 1] == '-')
+        {
+            int lineEnd = _sqlText.IndexOfAny(['\r', '\n'], i + 2);
+            if (lineEnd < 0)
+            {
+                lineEnd = _sqlText.Length;
+            }
+
+            string value = _sqlText.Substring(i + 2, lineEnd - (i + 2)).Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        return null;
+    }
+
     private TableRefId ProcessTableReference(TableReference? tableReference)
     {
         if (tableReference is null)
@@ -273,6 +466,16 @@ internal sealed class SqlStatementDomainMapper
             Alias = alias,
             RoleHints = roleHints
         });
+
+        if (!string.IsNullOrWhiteSpace(alias))
+        {
+            _tableAliasToId[alias] = id;
+        }
+
+        if (!string.IsNullOrWhiteSpace(source.Name?.Object))
+        {
+            _tableObjectToId[source.Name.Object] = id;
+        }
 
         if (tableReference is QueryDerivedTable queryDerivedTable)
         {
