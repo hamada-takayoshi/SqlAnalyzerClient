@@ -4,6 +4,7 @@ using SqlAnalyzer.App.Verification;
 using SqlAnalyzer.App.Views;
 using SqlAnalyzer.SqlServer.Analysis;
 using SqlAnalyzer.SqlServer.Boundary;
+using SqlAnalyzer.SqlServer.Formatting;
 
 namespace SqlAnalyzer.App;
 
@@ -17,8 +18,9 @@ public partial class MainWindow : Window
         Phase5VerificationHarness.VerifyOrThrow();
         Phase6VerificationHarness.VerifyOrThrow();
         Phase7VerificationHarness.VerifyOrThrow();
+        Phase8VerificationHarness.VerifyOrThrow();
 
-        MainViewModel viewModel = new(new SqlServerAnalyzer());
+        MainViewModel viewModel = new(new SqlServerAnalyzer(), new SqlServerFormatter());
         viewModel.OpenSettingsAction = OpenSettingsWindow;
         DataContext = viewModel;
     }

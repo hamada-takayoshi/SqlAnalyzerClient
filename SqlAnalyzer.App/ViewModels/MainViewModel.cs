@@ -9,6 +9,7 @@ using SqlAnalyzer.Domain.Model;
 using SqlAnalyzer.App.Services;
 using SqlAnalyzer.SqlServer.Analysis;
 using SqlAnalyzer.SqlServer.Boundary;
+using SqlAnalyzer.SqlServer.Formatting;
 
 namespace SqlAnalyzer.App.ViewModels;
 
@@ -18,6 +19,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly StatementBoundaryExtractor _boundaryExtractor;
     private readonly DiagramService _diagramService;
     private readonly ExportService _exportService;
+    private readonly ISqlFormatter _formatter;
     private readonly AsyncRelayCommand _analyzeCommand;
     private readonly RelayCommand _cancelCommand;
     private readonly RelayCommand _formatCommand;
@@ -47,10 +49,13 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     private byte[]? _diagramPngBytes;
     private SqlAnalysisResult? _analysisResult;
     private CancellationTokenSource? _analysisCancellationTokenSource;
+    private int _formatIndentSize = 4;
+    private bool _formatUppercaseKeywords = true;
 
-    public MainViewModel(ISqlAnalyzer analyzer)
+    public MainViewModel(ISqlAnalyzer analyzer, ISqlFormatter formatter)
     {
         _analyzer = analyzer;
+        _formatter = formatter;
         _boundaryExtractor = new StatementBoundaryExtractor();
         _diagramService = new DiagramService();
         _exportService = new ExportService();
@@ -227,9 +232,55 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 
     public bool IsNotSelectStatement => !IsSelectStatement;
 
+    public int FormatIndentSize
+    {
+        get => _formatIndentSize;
+        set => SetProperty(ref _formatIndentSize, value);
+    }
+
+    public bool FormatUppercaseKeywords
+    {
+        get => _formatUppercaseKeywords;
+        set => SetProperty(ref _formatUppercaseKeywords, value);
+    }
+
     private void FormatSql()
     {
-        StatusText = "Formatting is not implemented in Phase 2.";
+        StatusText = "Formatting...";
+        try
+        {
+            SqlFormatResult formatResult = _formatter.FormatAsync(
+                    SelectedDialect,
+                    SqlText,
+                    new SqlFormatOptions
+                    {
+                        IndentationWidth = FormatIndentSize,
+                        UppercaseKeywords = FormatUppercaseKeywords
+                    },
+                    CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+
+            SqlText = formatResult.FormattedSql;
+            foreach (Diagnostic diagnostic in formatResult.Diagnostics)
+            {
+                AddOrUpdateDiagnostic(diagnostic);
+            }
+
+            StatusText = formatResult.Diagnostics.Count == 0
+                ? "Formatting completed."
+                : "Formatting completed with diagnostics.";
+        }
+        catch (Exception ex)
+        {
+            AddOrUpdateDiagnostic(new Diagnostic
+            {
+                Severity = DiagnosticSeverity.Error,
+                Code = "UNSUPPORTED_SYNTAX",
+                Message = $"Formatting failed unexpectedly: {ex.Message}"
+            });
+            StatusText = "Formatting failed.";
+        }
     }
 
     private async Task AnalyzeAsync()
@@ -421,6 +472,17 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             ? (string.IsNullOrWhiteSpace(DiagramErrorMessage) ? "PNG preview is not available." : DiagramErrorMessage)
             : "PNG preview generated successfully.";
         _savePngCommand.NotifyCanExecuteChanged();
+    }
+
+    private void AddOrUpdateDiagnostic(Diagnostic diagnostic)
+    {
+        Diagnostics.Add(new DiagnosticRow
+        {
+            Severity = diagnostic.Severity.ToString(),
+            Code = diagnostic.Code,
+            Message = diagnostic.Message,
+            Location = diagnostic.Span is null ? "-" : $"Index {diagnostic.Span.StartIndex}, Len {diagnostic.Span.Length}"
+        });
     }
 
     private void CopyMermaid()
