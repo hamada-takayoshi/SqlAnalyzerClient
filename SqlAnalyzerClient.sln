@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlAnalyzer.SqlServer", "Sq
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlAnalyzer.App", "SqlAnalyzer.App\SqlAnalyzer.App.csproj", "{41F82E56-48EA-4790-95F3-C76FA6FCAC6D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlAnalyzer.Tests", "SqlAnalyzer.Tests\SqlAnalyzer.Tests.csproj", "{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{41F82E56-48EA-4790-95F3-C76FA6FCAC6D}.Release|x64.Build.0 = Release|Any CPU
 		{41F82E56-48EA-4790-95F3-C76FA6FCAC6D}.Release|x86.ActiveCfg = Release|Any CPU
 		{41F82E56-48EA-4790-95F3-C76FA6FCAC6D}.Release|x86.Build.0 = Release|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Debug|x64.Build.0 = Debug|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Debug|x86.Build.0 = Debug|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Release|x64.ActiveCfg = Release|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Release|x64.Build.0 = Release|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Release|x86.ActiveCfg = Release|Any CPU
+		{66BAE3D8-1BB6-4F11-BEA3-2FD027F01599}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
