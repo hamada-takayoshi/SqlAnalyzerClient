@@ -42,7 +42,6 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     private string _boundaryInfoText = "-";
     private bool _isAnalyzing;
     private string _selectedDiagramMode = "Diagram Image";
-    private string _diagramImageText = "Analyze SQL to generate diagram preview.";
     private string _diagramErrorMessage = string.Empty;
     private string _mermaidText = "flowchart LR";
     private BitmapSource? _diagramImageSource;
@@ -165,12 +164,6 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     public bool IsDiagramImageMode => string.Equals(SelectedDiagramMode, "Diagram Image", StringComparison.Ordinal);
 
     public bool IsMermaidMode => string.Equals(SelectedDiagramMode, "Mermaid Markdown", StringComparison.Ordinal);
-
-    public string DiagramImageText
-    {
-        get => _diagramImageText;
-        set => SetProperty(ref _diagramImageText, value);
-    }
 
     public string DiagramErrorMessage
     {
@@ -468,9 +461,6 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         _diagramPngBytes = diagram.PngBytes;
         DiagramImageSource = _diagramService.CreateBitmapSource(diagram.PngBytes);
         DiagramErrorMessage = diagram.ErrorMessage ?? string.Empty;
-        DiagramImageText = DiagramImageSource is null
-            ? (string.IsNullOrWhiteSpace(DiagramErrorMessage) ? "PNG preview is not available." : DiagramErrorMessage)
-            : "PNG preview generated successfully.";
         _savePngCommand.NotifyCanExecuteChanged();
     }
 
