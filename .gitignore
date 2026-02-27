@@ -1,6 +1,7 @@
 # .NET build outputs
 bin/
 obj/
+dist/
 
 # Visual Studio
 .vs/
