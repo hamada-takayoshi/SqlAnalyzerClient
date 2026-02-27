@@ -38,10 +38,20 @@ public sealed class ExportService
 
         if (dialog.ShowDialog() != true)
         {
+            DebugLog.Write("SavePng canceled by user.");
             return false;
         }
 
-        File.WriteAllBytes(dialog.FileName, pngBytes);
-        return true;
+        try
+        {
+            File.WriteAllBytes(dialog.FileName, pngBytes);
+            DebugLog.Write($"SavePng success: path={dialog.FileName}, bytes={pngBytes.Length}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"SavePng error: path={dialog.FileName}, bytes={pngBytes.Length}, ex={ex}");
+            return false;
+        }
     }
 }

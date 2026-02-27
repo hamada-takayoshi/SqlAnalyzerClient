@@ -461,6 +461,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         _diagramPngBytes = diagram.PngBytes;
         DiagramImageSource = _diagramService.CreateBitmapSource(diagram.PngBytes);
         DiagramErrorMessage = diagram.ErrorMessage ?? string.Empty;
+        DebugLog.Write(
+            $"ApplyResult diagram: statement={result.Statement.StatementType}, tables={result.Statement.Tables.Count}, relations={result.Statement.Relations.Count}, " +
+            $"pngBytes={(_diagramPngBytes?.Length ?? 0)}, imageNull={(DiagramImageSource is null)}, error='{DiagramErrorMessage}'");
         _savePngCommand.NotifyCanExecuteChanged();
     }
 
@@ -543,7 +546,10 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         if (_diagramPngBytes is { Length: > 0 } && _exportService.SavePng(_diagramPngBytes))
         {
             StatusText = "PNG saved.";
+            return;
         }
+
+        StatusText = "PNG save failed or canceled.";
     }
 
     public sealed record TableRow

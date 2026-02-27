@@ -11,11 +11,13 @@ public sealed class DiagramService
 {
     public DiagramArtifacts Generate(SqlStatement statement)
     {
+        DebugLog.Write($"Generate start: statement={statement.StatementType}, tables={statement.Tables.Count}, relations={statement.Relations.Count}");
         string mermaidText = BuildMermaidText(statement.Tables, statement.Relations);
 
         try
         {
             byte[] pngBytes = RenderPng(statement.Tables, statement.Relations);
+            DebugLog.Write($"Generate success: pngBytes={pngBytes.Length}, mermaidLength={mermaidText.Length}");
             return new DiagramArtifacts
             {
                 MermaidText = mermaidText,
@@ -24,6 +26,7 @@ public sealed class DiagramService
         }
         catch (Exception ex)
         {
+            DebugLog.Write($"Generate error: {ex}");
             return new DiagramArtifacts
             {
                 MermaidText = mermaidText,
@@ -37,17 +40,27 @@ public sealed class DiagramService
     {
         if (pngBytes is null || pngBytes.Length == 0)
         {
+            DebugLog.Write("CreateBitmapSource skipped: pngBytes is null or empty.");
             return null;
         }
 
-        BitmapImage image = new();
-        using MemoryStream stream = new(pngBytes);
-        image.BeginInit();
-        image.CacheOption = BitmapCacheOption.OnLoad;
-        image.StreamSource = stream;
-        image.EndInit();
-        image.Freeze();
-        return image;
+        try
+        {
+            BitmapImage image = new();
+            using MemoryStream stream = new(pngBytes);
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.StreamSource = stream;
+            image.EndInit();
+            image.Freeze();
+            DebugLog.Write($"CreateBitmapSource success: pixel={image.PixelWidth}x{image.PixelHeight}, dpi={image.DpiX}x{image.DpiY}");
+            return image;
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"CreateBitmapSource error: {ex}");
+            throw;
+        }
     }
 
     private static string BuildMermaidText(IReadOnlyList<TableRef> tables, IReadOnlyList<TableRelation> relations)
@@ -127,38 +140,87 @@ public sealed class DiagramService
         }
 
         DrawingVisual visual = new();
-        using DrawingContext dc = visual.RenderOpen();
-        DrawBackground(dc, width, height);
-
-        foreach (TableRelation relation in orderedRelations)
+        using (DrawingContext dc = visual.RenderOpen())
         {
-            if (!tableRects.TryGetValue(relation.From.Value, out Rect fromRect) ||
-                !tableRects.TryGetValue(relation.To.Value, out Rect toRect))
+            DrawBackground(dc, width, height);
+
+            foreach (TableRelation relation in orderedRelations)
             {
-                continue;
+                if (!tableRects.TryGetValue(relation.From.Value, out Rect fromRect) ||
+                    !tableRects.TryGetValue(relation.To.Value, out Rect toRect))
+                {
+                    continue;
+                }
+
+                DrawEdge(dc, fromRect, toRect, relation.JoinType.ToString());
             }
 
-            DrawEdge(dc, fromRect, toRect, relation.JoinType.ToString());
-        }
-
-        foreach (TableRef table in orderedTables)
-        {
-            if (!tableRects.TryGetValue(table.Id.Value, out Rect rect))
+            foreach (TableRef table in orderedTables)
             {
-                continue;
-            }
+                if (!tableRects.TryGetValue(table.Id.Value, out Rect rect))
+                {
+                    continue;
+                }
 
-            DrawNode(dc, rect, BuildNodeLabel(table));
+                DrawNode(dc, rect, BuildNodeLabel(table));
+            }
         }
 
         RenderTargetBitmap bitmap = new(width, height, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(visual);
+        LogBitmapStats(bitmap, width, height, orderedTables.Count, orderedRelations.Count);
 
         PngBitmapEncoder encoder = new();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using MemoryStream stream = new();
         encoder.Save(stream);
+        DebugLog.Write($"RenderPng encoded: width={width}, height={height}, bytes={stream.Length}");
         return stream.ToArray();
+    }
+
+    private static void LogBitmapStats(BitmapSource bitmap, int width, int height, int tableCount, int relationCount)
+    {
+        try
+        {
+            int stride = width * 4;
+            byte[] pixels = new byte[stride * height];
+            bitmap.CopyPixels(pixels, stride, 0);
+
+            long nonTransparent = 0;
+            long nonBlack = 0;
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                byte b = pixels[i];
+                byte g = pixels[i + 1];
+                byte r = pixels[i + 2];
+                byte a = pixels[i + 3];
+                if (a > 0)
+                {
+                    nonTransparent++;
+                }
+
+                if (r > 0 || g > 0 || b > 0)
+                {
+                    nonBlack++;
+                }
+            }
+
+            int cx = Math.Max(0, Math.Min(width - 1, width / 2));
+            int cy = Math.Max(0, Math.Min(height - 1, height / 2));
+            int centerIndex = cy * stride + cx * 4;
+            byte cb = pixels[centerIndex];
+            byte cg = pixels[centerIndex + 1];
+            byte cr = pixels[centerIndex + 2];
+            byte ca = pixels[centerIndex + 3];
+
+            DebugLog.Write(
+                $"RenderPng stats: tables={tableCount}, relations={relationCount}, px={width}x{height}, " +
+                $"nonTransparent={nonTransparent}, nonBlack={nonBlack}, centerBGRA=({cb},{cg},{cr},{ca})");
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"RenderPng stats error: {ex}");
+        }
     }
 
     private static void DrawBackground(DrawingContext dc, int width, int height)
@@ -289,5 +351,3 @@ public sealed record DiagramArtifacts
 
     public string? ErrorMessage { get; init; }
 }
-
-
