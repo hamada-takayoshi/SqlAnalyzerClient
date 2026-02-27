@@ -1,6 +1,7 @@
 using SqlAnalyzer.Domain.Model;
+using SqlAnalyzer.SqlServer.Boundary;
 
-namespace SqlAnalyzer.SqlServer.Boundary;
+namespace SqlAnalyzer.Tests.Tests.Infrastructure;
 
 public static class BoundaryExtractionHarness
 {

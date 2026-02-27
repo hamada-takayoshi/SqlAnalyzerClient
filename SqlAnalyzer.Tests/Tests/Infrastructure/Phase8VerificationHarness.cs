@@ -1,7 +1,7 @@
 using SqlAnalyzer.Domain.Model;
 using SqlAnalyzer.SqlServer.Formatting;
 
-namespace SqlAnalyzer.App.Verification;
+namespace SqlAnalyzer.Tests.Tests.Infrastructure;
 
 internal static class Phase8VerificationHarness
 {

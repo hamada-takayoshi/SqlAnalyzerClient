@@ -2,7 +2,7 @@ using SqlAnalyzer.Domain.Model;
 using SqlAnalyzer.SqlServer.Analysis;
 using SqlAnalyzer.SqlServer.Boundary;
 
-namespace SqlAnalyzer.App.Verification;
+namespace SqlAnalyzer.Tests.Tests.Infrastructure;
 
 internal static class Phase5VerificationHarness
 {
