@@ -1,0 +1,79 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Publish (self-contained single-file)
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $rid = "win-x64"
+          $out = "artifacts/publish/$rid"
+
+          dotnet publish .\SqlAnalyzerClient\SqlAnalyzer.App.csproj `
+            -c Release `
+            -r $rid `
+            --self-contained true `
+            -o $out `
+            /p:PublishSingleFile=true `
+            /p:IncludeNativeLibrariesForSelfExtract=true `
+            /p:EnableCompressionInSingleFile=true `
+            /p:DebugType=none `
+            /p:DebugSymbols=false `
+            /p:PublishReadyToRun=false
+
+          if (!(Test-Path "$out/SqlAnalyzer.App.exe")) { throw "SqlAnalyzer.App.exe not found in $out" }
+
+      - name: Package (zip)
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $rid = "win-x64"
+          $pub = "artifacts/publish/$rid"
+          $pkgDir = "artifacts/dist/SqlAnalyzerClient_${tag}_${rid}"
+
+          New-Item -ItemType Directory -Force $pkgDir | Out-Null
+          Copy-Item "$pub/SqlAnalyzer.App.exe" $pkgDir -Force
+
+          # Optional: add README if you want
+          Set-Content -Path "$pkgDir/README.txt" -Encoding utf8 -Value @"
+          SqlAnalyzerClient $tag
+          Target: Windows x64
+          Self-contained single-file build
+          Offline operation only
+          "@
+
+          $zip = "artifacts/dist/SqlAnalyzerClient_${tag}_${rid}.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path $pkgDir -DestinationPath $zip
+
+          "ZIP_PATH=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Create GitHub Release and upload asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: SqlAnalyzerClient ${{ github.ref_name }}
+          generate_release_notes: true
+          files: ${{ env.ZIP_PATH }}
