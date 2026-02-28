@@ -31,7 +31,7 @@ jobs:
           $rid = "win-x64"
           $out = "artifacts/publish/$rid"
 
-          dotnet publish .\SqlAnalyzerClient\SqlAnalyzer.App.csproj `
+          dotnet publish .\SqlAnalyzer.App\SqlAnalyzer.App.csproj `
             -c Release `
             -r $rid `
             --self-contained true `
