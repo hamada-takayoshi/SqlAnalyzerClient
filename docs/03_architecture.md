@@ -207,7 +207,7 @@ Follow docs/13_task_plan.md:
 - Add real SQL Server parsing
 - Add diagrams and export
 - Add formatting
-- Package as self-contained
+- Package for offline installation on .NET Framework 4.6.2
 
 ---
 

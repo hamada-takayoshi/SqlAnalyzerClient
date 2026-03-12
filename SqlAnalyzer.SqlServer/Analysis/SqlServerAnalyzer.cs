@@ -13,7 +13,7 @@ public sealed class SqlServerAnalyzer : ISqlAnalyzer
         cancellationToken.ThrowIfCancellationRequested();
 
         ScriptDomParseResult parseResult = _parser.Parse(sqlText ?? string.Empty);
-        List<Diagnostic> diagnostics = [];
+        List<Diagnostic> diagnostics = new();
         AddParseDiagnostics(parseResult.Errors, diagnostics);
 
         SqlStatement statement = new UnknownStatement();

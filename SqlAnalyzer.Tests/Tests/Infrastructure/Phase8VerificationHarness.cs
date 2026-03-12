@@ -23,7 +23,7 @@ internal static class Phase8VerificationHarness
             .GetResult();
 
         Expect(upper.Diagnostics.Count == 0, "Uppercase formatting diagnostics");
-        Expect(upper.FormattedSql.Contains("SELECT", StringComparison.Ordinal), "Uppercase formatting keyword");
+        Expect(upper.FormattedSql.IndexOf("SELECT", StringComparison.Ordinal) >= 0, "Uppercase formatting keyword");
 
         // 2) Lowercase option
         SqlFormatResult lower = formatter.FormatAsync(
@@ -39,7 +39,7 @@ internal static class Phase8VerificationHarness
             .GetResult();
 
         Expect(lower.Diagnostics.Count == 0, "Lowercase formatting diagnostics");
-        Expect(lower.FormattedSql.Contains("select", StringComparison.Ordinal), "Lowercase formatting keyword");
+        Expect(lower.FormattedSql.IndexOf("select", StringComparison.Ordinal) >= 0, "Lowercase formatting keyword");
 
         // 3) Invalid SQL -> diagnostics, no crash
         SqlFormatResult invalid = formatter.FormatAsync(

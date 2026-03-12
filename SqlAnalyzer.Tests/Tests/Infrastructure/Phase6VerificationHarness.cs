@@ -20,8 +20,8 @@ FROM A
 LEFT JOIN B ON A.Id = B.AId;
 """);
         DiagramArtifacts diagram1 = diagramService.Generate(case1.Statement);
-        Expect(diagram1.MermaidText.Contains("flowchart LR", StringComparison.Ordinal), "Case1 Mermaid header");
-        Expect(diagram1.MermaidText.Contains("|LeftOuter|", StringComparison.Ordinal), "Case1 JoinType label");
+        Expect(diagram1.MermaidText.IndexOf("flowchart LR", StringComparison.Ordinal) >= 0, "Case1 Mermaid header");
+        Expect(diagram1.MermaidText.IndexOf("|LeftOuter|", StringComparison.Ordinal) >= 0, "Case1 JoinType label");
         Expect(CountOccurrences(diagram1.MermaidText, "-->") == 1, "Case1 edge count");
         Expect(diagram1.PngBytes is { Length: > 0 }, "Case1 PNG render");
 
@@ -32,7 +32,7 @@ FROM A
 OUTER APPLY dbo.FN(A.Id) F;
 """);
         DiagramArtifacts diagram2 = diagramService.Generate(case2.Statement);
-        Expect(diagram2.MermaidText.Contains("|OuterApply|", StringComparison.Ordinal), "Case2 Apply label");
+        Expect(diagram2.MermaidText.IndexOf("|OuterApply|", StringComparison.Ordinal) >= 0, "Case2 Apply label");
         Expect(diagram2.PngBytes is { Length: > 0 }, "Case2 PNG render");
 
         // 3) No relations
@@ -41,7 +41,7 @@ SELECT *
 FROM SingleTable;
 """);
         DiagramArtifacts diagram3 = diagramService.Generate(case3.Statement);
-        Expect(diagram3.MermaidText.Contains("flowchart LR", StringComparison.Ordinal), "Case3 Mermaid header");
+        Expect(diagram3.MermaidText.IndexOf("flowchart LR", StringComparison.Ordinal) >= 0, "Case3 Mermaid header");
         Expect(CountOccurrences(diagram3.MermaidText, "-->") == 0, "Case3 no edges");
         Expect(diagram3.PngBytes is { Length: > 0 }, "Case3 PNG render");
 

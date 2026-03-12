@@ -16,8 +16,8 @@ namespace SqlAnalyzer.SqlServer.Analysis;
 internal sealed class SqlStatementDomainMapper
 {
     private readonly string _sqlText;
-    private readonly List<TableRef> _tables = [];
-    private readonly List<TableRelation> _relations = [];
+    private readonly List<TableRef> _tables = new();
+    private readonly List<TableRelation> _relations = new();
     private readonly Dictionary<string, TableRefId> _tableAliasToId = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, TableRefId> _tableObjectToId = new(StringComparer.OrdinalIgnoreCase);
     private int _tableIndex;
@@ -211,7 +211,7 @@ internal sealed class SqlStatementDomainMapper
             return Array.Empty<SelectItem>();
         }
 
-        List<SelectItem> items = [];
+        List<SelectItem> items = new();
         switch (queryExpression)
         {
             case QuerySpecification querySpecification:
@@ -286,8 +286,8 @@ internal sealed class SqlStatementDomainMapper
         }
 
         IList<Identifier> identifiers = columnReference.MultiPartIdentifier.Identifiers;
-        string columnName = identifiers[^1].Value;
-        string? sourceToken = identifiers.Count >= 2 ? identifiers[^2].Value : null;
+        string columnName = identifiers[identifiers.Count - 1].Value;
+        string? sourceToken = identifiers.Count >= 2 ? identifiers[identifiers.Count - 2].Value : null;
         TableRefId? resolvedTableId = ResolveTableRefId(sourceToken);
         string? sourceTableName = ResolveTableDisplayName(sourceToken, resolvedTableId);
 
@@ -340,7 +340,7 @@ internal sealed class SqlStatementDomainMapper
         if (expression is ColumnReferenceExpression columnReference &&
             columnReference.MultiPartIdentifier?.Identifiers is { Count: > 0 })
         {
-            return columnReference.MultiPartIdentifier.Identifiers[^1].Value;
+            return columnReference.MultiPartIdentifier.Identifiers[columnReference.MultiPartIdentifier.Identifiers.Count - 1].Value;
         }
 
         if (expression is VariableReference variableReference)
@@ -381,7 +381,7 @@ internal sealed class SqlStatementDomainMapper
 
         if (_sqlText[i] == '-' && _sqlText[i + 1] == '-')
         {
-            int lineEnd = _sqlText.IndexOfAny(['\r', '\n'], i + 2);
+            int lineEnd = _sqlText.IndexOfAny(new[] { '\r', '\n' }, i + 2);
             if (lineEnd < 0)
             {
                 lineEnd = _sqlText.Length;
@@ -454,7 +454,7 @@ internal sealed class SqlStatementDomainMapper
         List<TableRoleHint>? roleHints = null;
         if (roleHint.HasValue)
         {
-            roleHints = [roleHint.Value];
+            roleHints = new List<TableRoleHint> { roleHint.Value };
         }
 
         TableSourceRef source = CreateSource(tableReference);
@@ -528,9 +528,9 @@ internal sealed class SqlStatementDomainMapper
             _ => i.Value
         }));
 
-        string obj = identifiers[^1].Value;
-        string? schema = identifiers.Count >= 2 ? identifiers[^2].Value : null;
-        string? database = identifiers.Count >= 3 ? identifiers[^3].Value : null;
+        string obj = identifiers[identifiers.Count - 1].Value;
+        string? schema = identifiers.Count >= 2 ? identifiers[identifiers.Count - 2].Value : null;
+        string? database = identifiers.Count >= 3 ? identifiers[identifiers.Count - 3].Value : null;
 
         return new QualifiedName
         {

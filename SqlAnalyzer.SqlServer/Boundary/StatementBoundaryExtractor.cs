@@ -32,7 +32,7 @@ public sealed class StatementBoundaryExtractor
             }
         }
 
-        string normalizedText = text[..boundaryEndExclusive];
+        string normalizedText = text.Substring(0, boundaryEndExclusive);
         int trailingStartIndex = boundaryEndExclusive;
         if (boundaryKind == BoundaryKind.Semicolon)
         {
@@ -43,7 +43,7 @@ public sealed class StatementBoundaryExtractor
             trailingStartIndex = FindIndexAfterGoLine(text, goLineStartIndex.Value);
         }
 
-        bool hasTrailingStatements = HasNonWhitespace(text.AsSpan(Math.Min(trailingStartIndex, length)));
+        bool hasTrailingStatements = HasNonWhitespace(text, Math.Min(trailingStartIndex, length));
 
         return new StatementBoundaryExtractionResult
         {
@@ -58,10 +58,11 @@ public sealed class StatementBoundaryExtractor
         };
     }
 
-    private static bool HasNonWhitespace(ReadOnlySpan<char> text)
+    private static bool HasNonWhitespace(string text, int startIndex)
     {
-        foreach (char c in text)
+        for (int i = startIndex; i < text.Length; i++)
         {
+            char c = text[i];
             if (!char.IsWhiteSpace(c))
             {
                 return true;
@@ -219,8 +220,8 @@ public sealed class StatementBoundaryExtractor
             return false;
         }
 
-        ReadOnlySpan<char> line = text.AsSpan(start, endExclusive - start).Trim();
-        return line.Equals("GO".AsSpan(), StringComparison.OrdinalIgnoreCase);
+        string line = text.Substring(start, endExclusive - start).Trim();
+        return string.Equals(line, "GO", StringComparison.OrdinalIgnoreCase);
     }
 
     private static int FindIndexAfterGoLine(string text, int goLineStartIndex)

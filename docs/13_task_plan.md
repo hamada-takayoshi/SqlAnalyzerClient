@@ -11,7 +11,7 @@ Each phase must be completed and verified before moving to the next phase.
 
 ## Goal
 
-Create a working .NET 8 WPF solution with the required project structure.
+Create a working .NET Framework 4.6.2 WPF solution with the required project structure.
 
 ## Required Projects
 
@@ -21,7 +21,7 @@ Create a working .NET 8 WPF solution with the required project structure.
 
 ## Requirements
 
-- Target: .NET 8
+- Target: .NET Framework 4.6.2
 - Windows only
 - No runtime network dependencies
 
@@ -209,7 +209,7 @@ Implement SQL formatting for SQL Server.
 
 ---
 
-# Phase 9 – Self-Contained Packaging
+# Phase 9 – Offline Packaging
 
 ## Goal
 
@@ -219,9 +219,9 @@ Verify offline-only distribution.
 
 1. Run:
 
-   dotnet publish -c Release -r win-x64 --self-contained true
+   dotnet build -c Release
 
-2. Copy published folder to offline environment
+2. Copy build output folder and required files to offline environment
 3. Verify:
    - App launches
    - No network calls
@@ -229,7 +229,7 @@ Verify offline-only distribution.
 
 ## Definition of Done
 
-- App runs without installed .NET runtime
+- App runs with .NET Framework 4.6.2 installed
 - No runtime internet dependency
 - No exceptions on startup
 

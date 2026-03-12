@@ -197,12 +197,12 @@ All analysis must be local.
 ### 3.2 Distribution
 
 - Windows x64
-- Self-contained publish
-- No runtime dependency on pre-installed .NET runtime
+- .NET Framework 4.6.2 runtime required
+- Installer/package must not require internet access at install or runtime
 
-Publish command example:
+Build command example:
 
-- dotnet publish -c Release -r win-x64 --self-contained true
+- dotnet build -c Release
 
 
 ---

@@ -315,14 +315,14 @@ public sealed class DiagramService
 
     private static string SanitizeNodeId(string id)
     {
-        Span<char> buffer = stackalloc char[id.Length];
+        char[] buffer = new char[id.Length];
         int index = 0;
         foreach (char c in id)
         {
             buffer[index++] = char.IsLetterOrDigit(c) ? c : '_';
         }
 
-        string sanitized = new(buffer[..index]);
+        string sanitized = new string(buffer, 0, index);
         if (string.IsNullOrWhiteSpace(sanitized))
         {
             return "node";
@@ -338,8 +338,8 @@ public sealed class DiagramService
 
     private static string EscapeMermaidLabel(string label)
     {
-        return label.Replace("\\", "\\\\", StringComparison.Ordinal)
-                    .Replace("\"", "\\\"", StringComparison.Ordinal);
+        return label.Replace("\\", "\\\\")
+                    .Replace("\"", "\\\"");
     }
 }
 
