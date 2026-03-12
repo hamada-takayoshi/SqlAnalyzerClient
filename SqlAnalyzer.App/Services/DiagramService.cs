@@ -295,14 +295,15 @@ public sealed class DiagramService
 
     private static string BuildNodeLabel(TableRef table)
     {
-        if (!string.IsNullOrWhiteSpace(table.Alias))
+        string? physicalName = BuildPhysicalTableName(table.Source.Name);
+        if (!string.IsNullOrWhiteSpace(physicalName))
         {
-            return table.Alias;
-        }
+            if (!string.IsNullOrWhiteSpace(table.Alias))
+            {
+                return physicalName + " (" + table.Alias + ")";
+            }
 
-        if (!string.IsNullOrWhiteSpace(table.Source.Name?.Object))
-        {
-            return table.Source.Name.Object;
+            return physicalName;
         }
 
         if (!string.IsNullOrWhiteSpace(table.Source.ExpressionText))
@@ -311,6 +312,21 @@ public sealed class DiagramService
         }
 
         return table.Id.Value;
+    }
+
+    private static string? BuildPhysicalTableName(QualifiedName? name)
+    {
+        if (name is null || string.IsNullOrWhiteSpace(name.Object))
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(name.Schema))
+        {
+            return name.Object;
+        }
+
+        return name.Schema + "." + name.Object;
     }
 
     private static string SanitizeNodeId(string id)
