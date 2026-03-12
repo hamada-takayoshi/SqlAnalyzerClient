@@ -9,8 +9,8 @@ public sealed class ExportService
     {
         SaveFileDialog dialog = new()
         {
-            Title = "Save Mermaid Markdown",
-            Filter = "Markdown files (*.md)|*.md|All files (*.*)|*.*",
+            Title = "Mermaid Markdownを保存",
+            Filter = "Markdownファイル (*.md)|*.md|すべてのファイル (*.*)|*.*",
             FileName = $"diagram_{DateTime.Now:yyyyMMdd_HHmmss}.md",
             AddExtension = true,
             DefaultExt = ".md"
@@ -29,8 +29,8 @@ public sealed class ExportService
     {
         SaveFileDialog dialog = new()
         {
-            Title = "Save Diagram PNG",
-            Filter = "PNG files (*.png)|*.png|All files (*.*)|*.*",
+            Title = "図PNGを保存",
+            Filter = "PNGファイル (*.png)|*.png|すべてのファイル (*.*)|*.*",
             FileName = $"diagram_{DateTime.Now:yyyyMMdd_HHmmss}.png",
             AddExtension = true,
             DefaultExt = ".png"

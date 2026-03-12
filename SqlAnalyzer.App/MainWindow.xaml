@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="SQL Analyzer Client"
+        Title="SQL解析クライアント"
         Width="1400"
         Height="860"
         MinWidth="1100"
@@ -39,7 +39,7 @@
                 <TextBlock Grid.Column="0"
                            Margin="0,0,8,0"
                            VerticalAlignment="Center"
-                           Text="Dialect" />
+                           Text="SQL方言" />
                 <ComboBox Grid.Column="1"
                           Width="160"
                           Margin="0,0,12,0"
@@ -49,22 +49,22 @@
                 <Button Grid.Column="2"
                         Width="90"
                         Margin="0,0,8,0"
-                        Content="Format"
+                        Content="整形"
                         Command="{Binding FormatCommand}" />
                 <Button Grid.Column="3"
                         Width="90"
                         Margin="0,0,8,0"
-                        Content="Analyze"
+                        Content="解析"
                         Command="{Binding AnalyzeCommand}" />
                 <Button Grid.Column="4"
                         Width="90"
                         Margin="0,0,8,0"
-                        Content="Cancel"
+                        Content="キャンセル"
                         Command="{Binding CancelCommand}" />
                 <Button Grid.Column="5"
                         Width="90"
                         Margin="0,0,8,0"
-                        Content="Settings"
+                        Content="設定"
                         Command="{Binding SettingsCommand}" />
 
                 <StackPanel Grid.Column="7"
@@ -97,7 +97,7 @@
                 <TextBlock Grid.Row="0"
                            Margin="0,0,0,8"
                            FontWeight="SemiBold"
-                           Text="SQL Editor" />
+                           Text="SQLエディター" />
 
                 <TextBox Grid.Row="1"
                          AcceptsReturn="True"
@@ -111,62 +111,62 @@
                 <TextBlock Grid.Row="2"
                            Margin="0,8,0,0"
                            Foreground="#4A5568"
-                           Text="Only the first SQL statement (terminated by ';' or GO) will be analyzed." />
+                           Text="最初のSQLステートメント（';' または GO で終端）のみ解析されます。" />
             </Grid>
 
             <TabControl Grid.Column="1"
                         Margin="8,0,0,0">
-                <TabItem Header="Summary">
+                <TabItem Header="概要">
                     <StackPanel Margin="12">
-                        <TextBlock Text="{Binding StatementTypeText, StringFormat=Statement Type: {0}}" />
+                        <TextBlock Text="{Binding StatementTypeText, StringFormat=ステートメント種別: {0}}" />
                         <TextBlock Margin="0,6,0,0"
-                                   Text="{Binding TableCount, StringFormat=Tables: {0}}" />
+                                   Text="{Binding TableCount, StringFormat=テーブル数: {0}}" />
                         <TextBlock Margin="0,6,0,0"
-                                   Text="{Binding RelationCount, StringFormat=Relations: {0}}" />
+                                   Text="{Binding RelationCount, StringFormat=リレーション数: {0}}" />
                         <TextBlock Margin="0,6,0,0"
-                                   Text="{Binding SelectItemCount, StringFormat=Select Items: {0}}" />
+                                   Text="{Binding SelectItemCount, StringFormat=SELECT項目数: {0}}" />
                         <TextBlock Margin="0,6,0,0"
-                                   Text="{Binding DiagnosticCount, StringFormat=Diagnostics: {0}}" />
+                                   Text="{Binding DiagnosticCount, StringFormat=診断数: {0}}" />
                         <TextBlock Margin="0,6,0,0"
-                                   Text="{Binding BoundaryKindText, StringFormat=Boundary Type: {0}}" />
+                                   Text="{Binding BoundaryKindText, StringFormat=境界種別: {0}}" />
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Tables">
+                <TabItem Header="テーブル">
                     <DataGrid AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               IsReadOnly="True"
                               ItemsSource="{Binding Tables}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" />
-                            <DataGridTextColumn Header="Schema" Binding="{Binding Schema}" />
-                            <DataGridTextColumn Header="Object" Binding="{Binding Object}" />
-                            <DataGridTextColumn Header="Alias" Binding="{Binding Alias}" />
-                            <DataGridTextColumn Header="Logical Name" Binding="{Binding LogicalName}" />
-                            <DataGridTextColumn Header="Role" Binding="{Binding Role}" />
+                            <DataGridTextColumn Header="表示名" Binding="{Binding DisplayName}" />
+                            <DataGridTextColumn Header="スキーマ" Binding="{Binding Schema}" />
+                            <DataGridTextColumn Header="オブジェクト" Binding="{Binding Object}" />
+                            <DataGridTextColumn Header="別名" Binding="{Binding Alias}" />
+                            <DataGridTextColumn Header="論理名" Binding="{Binding LogicalName}" />
+                            <DataGridTextColumn Header="役割" Binding="{Binding Role}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </TabItem>
 
-                <TabItem Header="Relations">
+                <TabItem Header="リレーション">
                     <DataGrid AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               IsReadOnly="True"
                               ItemsSource="{Binding Relations}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="From Table" Binding="{Binding FromTable}" />
-                            <DataGridTextColumn Header="JoinType" Binding="{Binding JoinType}" />
-                            <DataGridTextColumn Header="To Table" Binding="{Binding ToTable}" />
+                            <DataGridTextColumn Header="元テーブル" Binding="{Binding FromTable}" />
+                            <DataGridTextColumn Header="結合種別" Binding="{Binding JoinType}" />
+                            <DataGridTextColumn Header="先テーブル" Binding="{Binding ToTable}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </TabItem>
 
-                <TabItem Header="Select Items">
+                <TabItem Header="SELECT項目">
                     <Grid>
                         <TextBlock Margin="12"
                                    VerticalAlignment="Top"
                                    Foreground="#4A5568"
-                                   Text="This SQL statement is not a SELECT."
+                                   Text="このSQLステートメントはSELECTではありません。"
                                    Visibility="{Binding IsNotSelectStatement, Converter={StaticResource BoolToVisibilityConverter}}" />
 
                         <Grid Visibility="{Binding IsSelectStatement, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -181,12 +181,12 @@
                                       IsReadOnly="True"
                                       ItemsSource="{Binding SelectItems}">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Output Name" Binding="{Binding OutputName}" />
-                                    <DataGridTextColumn Header="Expression" Binding="{Binding Expression}" />
-                                    <DataGridTextColumn Header="Table" Binding="{Binding Table}" />
-                                    <DataGridTextColumn Header="Column Name" Binding="{Binding ColumnName}" />
-                                    <DataGridTextColumn Header="Logical Name" Binding="{Binding LogicalName}" />
-                                    <DataGridTextColumn Header="Resolution Status" Binding="{Binding ResolutionStatus}" />
+                                    <DataGridTextColumn Header="出力名" Binding="{Binding OutputName}" />
+                                    <DataGridTextColumn Header="式" Binding="{Binding Expression}" />
+                                    <DataGridTextColumn Header="テーブル" Binding="{Binding Table}" />
+                                    <DataGridTextColumn Header="列名" Binding="{Binding ColumnName}" />
+                                    <DataGridTextColumn Header="論理名" Binding="{Binding LogicalName}" />
+                                    <DataGridTextColumn Header="解決状態" Binding="{Binding ResolutionStatus}" />
                                 </DataGrid.Columns>
                             </DataGrid>
 
@@ -196,17 +196,17 @@
                                         HorizontalAlignment="Right">
                                 <Button Width="130"
                                         Margin="0,0,8,0"
-                                        Content="Export as CSV"
+                                        Content="CSVとして出力"
                                         IsEnabled="False" />
                                 <Button Width="150"
-                                        Content="Export as Markdown"
+                                        Content="Markdownとして出力"
                                         IsEnabled="False" />
                             </StackPanel>
                         </Grid>
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Diagram">
+                <TabItem Header="図">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -217,7 +217,7 @@
                         <StackPanel Grid.Row="0"
                                     Orientation="Horizontal">
                             <TextBlock VerticalAlignment="Center"
-                                       Text="Mode"
+                                       Text="表示モード"
                                        Margin="0,0,8,0" />
                             <ComboBox Width="190"
                                       ItemsSource="{Binding DiagramModes}"
@@ -260,29 +260,29 @@
                                     HorizontalAlignment="Right">
                             <Button Width="110"
                                     Margin="0,0,8,0"
-                                    Content="Save PNG"
+                                    Content="PNG保存"
                                     Command="{Binding SavePngCommand}" />
                             <Button Width="130"
                                     Margin="0,0,8,0"
-                                    Content="Save Markdown"
+                                    Content="Markdown保存"
                                     Command="{Binding SaveMermaidCommand}" />
                             <Button Width="150"
-                                    Content="Copy to Clipboard"
+                                    Content="クリップボードにコピー"
                                     Command="{Binding CopyMermaidCommand}" />
                         </StackPanel>
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Diagnostics">
+                <TabItem Header="診断">
                     <DataGrid AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               IsReadOnly="True"
                               ItemsSource="{Binding Diagnostics}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Severity" Binding="{Binding Severity}" />
-                            <DataGridTextColumn Header="Code" Binding="{Binding Code}" />
-                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" />
-                            <DataGridTextColumn Header="Location" Binding="{Binding Location}" />
+                            <DataGridTextColumn Header="重要度" Binding="{Binding Severity}" />
+                            <DataGridTextColumn Header="コード" Binding="{Binding Code}" />
+                            <DataGridTextColumn Header="メッセージ" Binding="{Binding Message}" />
+                            <DataGridTextColumn Header="位置" Binding="{Binding Location}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </TabItem>

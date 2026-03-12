@@ -37,11 +37,11 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 """;
 
     private SqlDialect _selectedDialect = SqlDialect.SqlServer;
-    private string _statusText = "Ready";
+    private string _statusText = "準備完了";
     private string _executionTimeText = "-";
     private string _boundaryInfoText = "-";
     private bool _isAnalyzing;
-    private string _selectedDiagramMode = "Diagram Image";
+    private string _selectedDiagramMode = "図イメージ";
     private string _diagramErrorMessage = string.Empty;
     private string _mermaidText = "flowchart LR";
     private BitmapSource? _diagramImageSource;
@@ -60,7 +60,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         _exportService = new ExportService();
 
         Dialects = new[] { SqlDialect.SqlServer };
-        DiagramModes = new[] { "Diagram Image", "Mermaid Markdown" };
+        DiagramModes = new[] { "図イメージ", "Mermaidテキスト" };
 
         Tables = new ObservableCollection<TableRow>();
         Relations = new ObservableCollection<RelationRow>();
@@ -161,9 +161,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         }
     }
 
-    public bool IsDiagramImageMode => string.Equals(SelectedDiagramMode, "Diagram Image", StringComparison.Ordinal);
+    public bool IsDiagramImageMode => string.Equals(SelectedDiagramMode, "図イメージ", StringComparison.Ordinal);
 
-    public bool IsMermaidMode => string.Equals(SelectedDiagramMode, "Mermaid Markdown", StringComparison.Ordinal);
+    public bool IsMermaidMode => string.Equals(SelectedDiagramMode, "Mermaidテキスト", StringComparison.Ordinal);
 
     public string DiagramErrorMessage
     {
@@ -209,7 +209,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         }
     }
 
-    public string StatementTypeText => AnalysisResult?.Statement.StatementType.ToString() ?? "-";
+    public string StatementTypeText => AnalysisResult is null
+        ? "-"
+        : ToStatementTypeText(AnalysisResult.Statement.StatementType);
 
     public int TableCount => AnalysisResult?.Statement.Tables.Count ?? 0;
 
@@ -219,7 +221,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 
     public int DiagnosticCount => AnalysisResult?.Diagnostics.Count ?? 0;
 
-    public string BoundaryKindText => AnalysisResult?.Document.Boundary.Kind.ToString() ?? "-";
+    public string BoundaryKindText => AnalysisResult is null
+        ? "-"
+        : ToBoundaryKindText(AnalysisResult.Document.Boundary.Kind);
 
     public bool IsSelectStatement => AnalysisResult?.Statement.StatementType == SqlStatementType.Select;
 
@@ -239,7 +243,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 
     private void FormatSql()
     {
-        StatusText = "Formatting...";
+        StatusText = "整形中...";
         try
         {
             SqlFormatResult formatResult = _formatter.FormatAsync(
@@ -261,8 +265,8 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             }
 
             StatusText = formatResult.Diagnostics.Count == 0
-                ? "Formatting completed."
-                : "Formatting completed with diagnostics.";
+                ? "整形が完了しました。"
+                : "整形が完了しました（診断あり）。";
         }
         catch (Exception ex)
         {
@@ -270,9 +274,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             {
                 Severity = DiagnosticSeverity.Error,
                 Code = "UNSUPPORTED_SYNTAX",
-                Message = $"Formatting failed unexpectedly: {ex.Message}"
+                Message = $"整形中に予期しないエラーが発生しました: {ex.Message}"
             });
-            StatusText = "Formatting failed.";
+            StatusText = "整形に失敗しました。";
         }
     }
 
@@ -284,7 +288,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 
         Stopwatch stopwatch = Stopwatch.StartNew();
         IsAnalyzing = true;
-        StatusText = "Analyzing...";
+        StatusText = "解析中...";
         ExecutionTimeText = "-";
 
         try
@@ -294,14 +298,14 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             stopwatch.Stop();
 
             ApplyResult(result);
-            StatusText = "Ready";
+            StatusText = "準備完了";
             ExecutionTimeText = $"{stopwatch.ElapsedMilliseconds} ms";
-            BoundaryInfoText = $"Analyzed until {result.Document.Boundary.Kind}";
+            BoundaryInfoText = $"解析範囲: {ToBoundaryKindText(result.Document.Boundary.Kind)}まで";
         }
         catch (OperationCanceledException)
         {
             stopwatch.Stop();
-            StatusText = "Canceled";
+            StatusText = "キャンセルしました";
             ExecutionTimeText = $"{stopwatch.ElapsedMilliseconds} ms";
         }
         catch (Exception ex)
@@ -309,9 +313,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             stopwatch.Stop();
             SqlAnalysisResult fallback = CreateFallbackResult(boundaryResult, ex);
             ApplyResult(fallback);
-            StatusText = "Ready (with diagnostics)";
+            StatusText = "準備完了（診断あり）";
             ExecutionTimeText = $"{stopwatch.ElapsedMilliseconds} ms";
-            BoundaryInfoText = $"Analyzed until {fallback.Document.Boundary.Kind}";
+            BoundaryInfoText = $"解析範囲: {ToBoundaryKindText(fallback.Document.Boundary.Kind)}まで";
         }
         finally
         {
@@ -334,7 +338,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             {
                 Severity = DiagnosticSeverity.Warning,
                 Code = "MULTI_STATEMENT_TRUNCATED",
-                Message = "Only the first SQL statement was analyzed. Trailing statements were ignored."
+                Message = "最初のSQLステートメントのみ解析しました。後続のステートメントは無視されました。"
             });
         }
 
@@ -366,7 +370,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
                 {
                     Severity = DiagnosticSeverity.Error,
                     Code = "UNSUPPORTED_SYNTAX",
-                    Message = $"Analysis failed unexpectedly: {ex.Message}"
+                    Message = $"解析中に予期しないエラーが発生しました: {ex.Message}"
                 }
             }
         };
@@ -404,7 +408,9 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
                 Object = table.Source.Name?.Object ?? table.Source.ExpressionText ?? "-",
                 Alias = table.Alias ?? "-",
                 LogicalName = table.LogicalName ?? "-",
-                Role = table.RoleHints is { Count: > 0 } ? string.Join(", ", table.RoleHints) : "-"
+                Role = table.RoleHints is { Count: > 0 }
+                    ? string.Join(", ", table.RoleHints.Select(ToTableRoleHintText))
+                    : "-"
             });
         }
 
@@ -420,7 +426,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
             Relations.Add(new RelationRow
             {
                 FromTable = fromName,
-                JoinType = relation.JoinType.ToString(),
+                JoinType = ToJoinTypeText(relation.JoinType),
                 ToTable = toName
             });
         }
@@ -436,7 +442,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
                     Table = item.SourceColumn?.TableAliasOrName ?? "-",
                     ColumnName = item.SourceColumn?.ColumnName ?? "-",
                     LogicalName = item.LogicalName ?? "-",
-                    ResolutionStatus = item.SourceColumn?.ResolvedTable is not null ? "Resolved" : "Unresolved"
+                    ResolutionStatus = item.SourceColumn?.ResolvedTable is not null ? "解決済み" : "未解決"
                 });
             }
         }
@@ -445,11 +451,11 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
         {
             string location = diagnostic.Span is null
                 ? "-"
-                : $"Index {diagnostic.Span.StartIndex}, Len {diagnostic.Span.Length}";
+                : $"位置 {diagnostic.Span.StartIndex}, 長さ {diagnostic.Span.Length}";
 
             Diagnostics.Add(new DiagnosticRow
             {
-                Severity = diagnostic.Severity.ToString(),
+                Severity = ToDiagnosticSeverityText(diagnostic.Severity),
                 Code = diagnostic.Code,
                 Message = diagnostic.Message,
                 Location = location
@@ -471,10 +477,10 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     {
         Diagnostics.Add(new DiagnosticRow
         {
-            Severity = diagnostic.Severity.ToString(),
+            Severity = ToDiagnosticSeverityText(diagnostic.Severity),
             Code = diagnostic.Code,
             Message = diagnostic.Message,
-            Location = diagnostic.Span is null ? "-" : $"Index {diagnostic.Span.StartIndex}, Len {diagnostic.Span.Length}"
+            Location = diagnostic.Span is null ? "-" : $"位置 {diagnostic.Span.StartIndex}, 長さ {diagnostic.Span.Length}"
         });
     }
 
@@ -537,7 +543,7 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     {
         if (_exportService.SaveMermaidMarkdown(MermaidText))
         {
-            StatusText = "Mermaid markdown saved.";
+            StatusText = "Mermaid Markdownを保存しました。";
         }
     }
 
@@ -545,12 +551,67 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
     {
         if (_diagramPngBytes is { Length: > 0 } && _exportService.SavePng(_diagramPngBytes))
         {
-            StatusText = "PNG saved.";
+            StatusText = "PNGを保存しました。";
             return;
         }
 
-        StatusText = "PNG save failed or canceled.";
+        StatusText = "PNG保存に失敗したか、キャンセルされました。";
     }
+
+    private static string ToStatementTypeText(SqlStatementType statementType) =>
+        statementType switch
+        {
+            SqlStatementType.Select => "SELECT",
+            SqlStatementType.Insert => "INSERT",
+            SqlStatementType.Update => "UPDATE",
+            SqlStatementType.Delete => "DELETE",
+            SqlStatementType.Merge => "MERGE",
+            SqlStatementType.Unknown => "不明",
+            _ => "不明"
+        };
+
+    private static string ToBoundaryKindText(BoundaryKind boundaryKind) =>
+        boundaryKind switch
+        {
+            BoundaryKind.Semicolon => "セミコロン",
+            BoundaryKind.GoBatch => "GOバッチ",
+            BoundaryKind.EndOfText => "テキスト終端",
+            BoundaryKind.Unknown => "不明",
+            _ => "不明"
+        };
+
+    private static string ToJoinTypeText(JoinType joinType) =>
+        joinType switch
+        {
+            JoinType.Inner => "内部結合",
+            JoinType.LeftOuter => "左外部結合",
+            JoinType.RightOuter => "右外部結合",
+            JoinType.FullOuter => "完全外部結合",
+            JoinType.Cross => "クロス結合",
+            JoinType.CrossApply => "CROSS APPLY",
+            JoinType.OuterApply => "OUTER APPLY",
+            _ => "不明"
+        };
+
+    private static string ToTableRoleHintText(TableRoleHint roleHint) =>
+        roleHint switch
+        {
+            TableRoleHint.InsertTarget => "INSERT対象",
+            TableRoleHint.UpdateTarget => "UPDATE対象",
+            TableRoleHint.DeleteTarget => "DELETE対象",
+            TableRoleHint.MergeTarget => "MERGE対象",
+            TableRoleHint.MergeSource => "MERGEソース",
+            _ => "不明"
+        };
+
+    private static string ToDiagnosticSeverityText(DiagnosticSeverity severity) =>
+        severity switch
+        {
+            DiagnosticSeverity.Info => "情報",
+            DiagnosticSeverity.Warning => "警告",
+            DiagnosticSeverity.Error => "エラー",
+            _ => "不明"
+        };
 
     public sealed record TableRow
     {
@@ -588,12 +649,12 @@ LEFT JOIN dbo.Customers c ON o.CustomerId = c.CustomerId;
 
         public string LogicalName { get; init; } = "-";
 
-        public string ResolutionStatus { get; init; } = "Unresolved";
+        public string ResolutionStatus { get; init; } = "未解決";
     }
 
     public sealed record DiagnosticRow
     {
-        public string Severity { get; init; } = "Info";
+        public string Severity { get; init; } = "情報";
 
         public string Code { get; init; } = "-";
 
