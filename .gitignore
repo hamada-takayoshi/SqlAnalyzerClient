@@ -3,6 +3,8 @@ bin/
 obj/
 dist/
 .nuget/
+.dotnet/
+.dotnet-home/
 
 # Visual Studio
 .vs/
