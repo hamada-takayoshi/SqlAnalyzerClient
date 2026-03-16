@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <RestorePackagesPath>$(MSBuildThisFileDirectory).nuget\packages</RestorePackagesPath>
+    <RestoreIgnoreFailedSources>true</RestoreIgnoreFailedSources>
+    <RestoreAdditionalProjectSources Condition="Exists('$(USERPROFILE)\.nuget\packages')">$(USERPROFILE)\.nuget\packages</RestoreAdditionalProjectSources>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+</Project>
